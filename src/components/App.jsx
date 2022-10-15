@@ -1,106 +1,101 @@
 import React from "react";
-import { Component } from "react";
-// import axios from "axios";
-// import Notiflix from "notiflix";
+import { useState, useEffect } from "react";
 import ImageGallery from "./ImageGallery/ImageGallery";
 import LoadMoreBtn from "./Button/Button"
 import Modal from "./Modal/Modal";
 import Loader from "./Loader/Loader" 
 import  { searchImages } from "./../api/images"
 import Searchbar from "./SearchBar/SearchBar";
+import Notiflix from "notiflix";
 
-const perPage = 12;
-export default class App extends Component {
-  state = {
-    hits: [],
-    query: '',
-    page: 1,
-    showModal: false,
-    showLoadMore: false,
-    loading: false,
-    largeImageURL: '',
-    tags: '',
-    error: null,
-    total: 0,
-    totalImages: 0,
-  };
 
-  async componentDidUpdate(_, prevstate) {
-    const { page, query, hits } = this.state;
-    if (prevstate.query !== query || prevstate.page !== page) {
-      
-      this.setState({ loading: true });
-    
-      try {
-        const data = await searchImages(query, page, perPage);
-        if (!data.total) {
-          throw new Error('No images found');
-        }
-      
-        this.setState({
-          totalImages: data.totalHits,
-          hits: [...hits, ...data.hits],
-          loading: false,
-        });
-  
-      } catch (error) {
-        console.error(error.message);
-        this.setState({ loading: false, showLoadMore: false });
-      }
+export const App = () => {
+  const [hits, setHits] = useState([]);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+  const [showLoadMore, setShowLoadMore] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [error, setError] = useState(null);
+  const [totalImages, setTotalImages] = useState(0);
+
+  const perPage = 12;
+
+  useEffect(() => {
+    if (query === '') {
+      return
     }
-  }
-
+    setLoading(true);
   
-  handleFormSubmit = query => {
-    if (query !== this.state.query) {
-       this.setState({ query: query, page: 1, hits: []});
-    }
-  }
 
-  toggleModal = (imageURL, tag) => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-      largeImageURL: imageURL,
-      tags: tag,
-    }));
-  };
-
-
-  loadMore = () => {
-    this.setState(({ page }) => {
-      return {
-        page: page + 1,
-       
+  searchImages(query, page, perPage)
+    .then(data => {
+      if (!data.total) {
+        throw new Error('No images found');
       }
-    })
+
+      if (data.total > page * perPage + perPage) {
+        setShowLoadMore(true);
+      } else if (data.total <= page * perPage + perPage) {
+        setShowLoadMore(false)
+        
+        Notiflix.Notify.info(
+          "We're sorry, but this is the end of the search."
+        );
+      }
+      setHits(prevState => [...prevState, ...data.hits]);
+      setTotalImages(data.totalHits);
+      setLoading(false)
+
+    }).catch(error => {
+      setError(error.message);
+      setLoading(false);
+      setShowLoadMore(false);
+    });
+  
+}, [query, page]);
+
+  const handleFormSubmit = query => {
+    setQuery(query);
+    setHits([]);
+    setPage(1);
   };
-
-
-
-
-  render() {
-    const { hits, showModal, loading, largeImageURL, tags, error} = this.state;
+  
+  const toogleModal = (imageURL) => {
+    setShowModal(!showModal);
+    setLargeImageURL(imageURL);
+   
+  };
+  
+ 
+  const loadMore = () => {
+    setPage(prevState => prevState + 1);
+    setTotalImages(totalImages + perPage);
+   
+  };
+  
 
     return (
       <div>
-        <Searchbar onSubmit={this.handleFormSubmit} />
+        <Searchbar onSubmit={handleFormSubmit} />
 
         {loading && <Loader />}
         {error && <p>Oops! Something went wrong!</p>}
         {hits && (
-          <ImageGallery images={hits} onImage={this.toggleModal} />)}
+          <ImageGallery images={hits} onImage={toogleModal} />)}
         
 
         {showModal && (
-          <Modal onClose={this.toggleModal} url={largeImageURL} alt={tags} />
+          <Modal onClose={toogleModal} url={largeImageURL}/>
         )}
 
         {hits.length > 0 && (
-          <LoadMoreBtn onButtonClick={() => this.loadMore()} />
+          <LoadMoreBtn onButtonClick={() => loadMore(showLoadMore)} />
         )}
       </div>
     );
   }
-}
+
 
 

@@ -10,8 +10,6 @@ const Loader = () => {
                 radius={12}
                 color="teel"
                 ariaLabel="grid-loading"
-                // wrapperClass={{}}
-                // wrapperStyle=" "
             visible={true} />
         </div>
     )
