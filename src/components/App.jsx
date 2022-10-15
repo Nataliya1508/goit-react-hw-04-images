@@ -79,7 +79,7 @@ export default class App extends Component {
 
 
   render() {
-    const { hits, showModal, loading, largeImageURL, tags, error, totalImages } = this.state;
+    const { hits, showModal, loading, largeImageURL, tags, error} = this.state;
 
     return (
       <div>
